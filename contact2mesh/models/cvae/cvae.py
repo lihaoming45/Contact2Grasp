@@ -1,3 +1,18 @@
+import sys
+import os
+
+sys.path.append('.')
+sys.path.append('..')
+import numpy as np
+import torch
+from torch import nn
+from torch.nn import functional as F
+from pytorch3d import ops, transforms
+from contact2mesh.models.pointnet.pointnet_utils import PointNetEncoder
+from contact2mesh.utils.mano_util import CRot2rotmat, rotmat2aa
+from contact2mesh.models.pointnet2.pointnet2_sem_seg.pointnet2_sem_seg import pnet2_seg
+from reconstruction.model_rec import feature_upsample, AePcd
+
 class CVAE_Param2Mesh(nn.Module):
     def __init__(self, globalD=1024,
                  latentD=32,
