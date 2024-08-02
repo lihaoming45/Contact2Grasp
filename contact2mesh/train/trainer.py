@@ -27,16 +27,6 @@ class Train_Param2Mesh(Trainer_base):
         rh_f = self.rhm_model.th_faces.int().view(1, -1, 3)
         self.rh_f = rh_f.repeat(args.batch_size, 1, 1).to(self.device).to(torch.long)
 
-        # self.rhm_model = mano.load(model_path='/home/haoming/GrabNet/contactopt/manopth/mano/models/MANO_RIGHT.pkl',
-        #                    model_type='mano',
-        #                    num_pca_comps=45,
-        #                    batch_size=self.cfg.batch_size,
-        #                    flat_hand_mean=True).to(self.device)
-        #
-        # rh_f = torch.from_numpy(self.rhm_model.faces.astype(np.int32)).view(1, -1, 3)
-        # self.rh_f = rh_f.repeat(self.cfg.batch_size,1,1).to(self.device).to(torch.long)
-
-
         if isinstance(args.c_weights_path, str):
             v_weights = torch.from_numpy(np.load(args.c_weights_path)).to(torch.float32).to(self.device)
             v_weights2 = torch.pow(v_weights, 1.0 / 2.5)
