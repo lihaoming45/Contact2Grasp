@@ -1,1 +1,0 @@
-# Contact2Grasp
