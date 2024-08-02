@@ -21,7 +21,7 @@ class Train_Param2Mesh(Trainer_base):
         self.save_epo = 50
 
         flat_hand_mean=False if 'ContactPose' in args.desc else True
-        self.rhm_model = ManoLayer(mano_root='/remote-home/lihaoming/haoming/GrabNet/contactopt/manopth/mano/models', use_pca=False,
+        self.rhm_model = ManoLayer(mano_root='/remote-home/lihaoming/haoming/Contact2Mesh/contactopt/manopth/mano/models', use_pca=False,
                                    ncomps=45, side='right', flat_hand_mean=flat_hand_mean).to(self.device)
 
         rh_f = self.rhm_model.th_faces.int().view(1, -1, 3)
