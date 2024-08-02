@@ -19,4 +19,5 @@ Due to license restrictions, the MANO data files must be downloaded from the ori
 mano/webuser/lbs.py
 mano/models/MANO_RIGHT.pkl
 ```
+copy the MANO_RIGHT.pkl to the dir:"./contactopt/manopth/mano/models"
 
