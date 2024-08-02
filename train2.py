@@ -7,12 +7,11 @@ from contact2mesh.data.gb_loader import GrabNetDataset
 from contact2mesh.data.obman_loader import ObManDataset
 
 from contact2mesh.data.dataloader_Sampler import TwoStreamBatchSampler
-from contact2mesh.train.trainer import Trainer_PNet2_seg,Train_Param2Mesh,Trainer_PNet_mscale,Trainer_PNet2_mscale
+from contact2mesh.train.trainer import Train_Param2Mesh,Trainer_PNet_mscale
 import numpy as np
 import torch
 
 if __name__ == '__main__':
-
     import warnings
 
     warnings.filterwarnings("ignore", category=UserWarning)
@@ -58,12 +57,8 @@ if __name__ == '__main__':
 
         test_loader = DataLoader(test_dataset, batch_size=args.batch_size, drop_last=True)
 
-    if args.use_model =='PNet2_seg':
-        args.dec_pth = './contact2mesh/models/pointnet2/pointnet2_sem_seg/chec kpoints/best_model.pth'
-        trainer = Trainer_PNet2_seg(args, train_loader, test_loader)
 
-    elif args.use_model == 'Param2Mesh':
-
+    if args.use_model == 'Param2Mesh':
         args.vpe_path = '/home/haoming/GrabNet/grabnet/configs/verts_per_edge.npy'
         args.c_weights_path = '/home/haoming/GrabNet/grabnet/configs/rhand_weight.npy'
         # args.obj_enc_fixed = True
@@ -73,10 +68,6 @@ if __name__ == '__main__':
         args.glob_feat=True
         args.obj_enc_pth = None
         trainer = Trainer_PNet_mscale(args, train_loader, test_loader)
-
-    elif args.use_model == 'PNet2_mscale':
-        trainer = Trainer_PNet2_mscale(args, train_loader, test_loader)
-
 
     all_str = ''
     for key, val in vars(args).items():
