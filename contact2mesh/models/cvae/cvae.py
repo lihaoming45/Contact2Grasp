@@ -13,6 +13,49 @@ from contact2mesh.models.pointnet.pointnet_utils import PointNetEncoder
 from reconstruction.model_rec import feature_upsample, AePcd
 from contact2mesh.utils.mano_util import CRot2rotmat, rotmat2aa
 
+
+class ResBlock(nn.Module):
+
+    def __init__(self,
+                 Fin,
+                 Fout,
+                 n_neurons=256, norms=None):
+        super(ResBlock, self).__init__()
+        self.Fin = Fin
+        self.Fout = Fout
+
+        if norms == 'ln':
+            self.n1 = nn.LayerNorm(n_neurons)
+            self.n2 = nn.LayerNorm(Fout)
+
+        elif norms == 'bn':
+            self.n1 = nn.BatchNorm1d(n_neurons)
+            self.n2 = nn.BatchNorm1d(Fout)
+
+        self.fc1 = nn.Linear(Fin, n_neurons)
+        self.fc2 = nn.Linear(n_neurons, Fout)
+
+        if Fin != Fout:
+            self.fc3 = nn.Linear(Fin, Fout)
+
+        self.ll = nn.LeakyReLU(negative_slope=0.2)
+
+    def forward(self, x, final_nl=True):
+        Xin = x if self.Fin == self.Fout else self.ll(self.fc3(x))
+
+        Xout = self.fc1(x)  # n_neurons
+        Xout = self.n1(Xout)
+        Xout = self.ll(Xout)
+
+        Xout = self.fc2(Xout)
+        Xout = self.n2(Xout)
+        Xout = Xin + Xout
+
+        if final_nl:
+            return self.ll(Xout)
+        return Xout
+
+
 class CVAE_Param2Mesh(nn.Module):
     def __init__(self, globalD=1024,
                  latentD=32,
