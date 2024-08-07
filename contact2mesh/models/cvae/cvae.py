@@ -72,16 +72,21 @@ class CVAE_Param2Mesh(nn.Module):
         self.latentD = latentD
 
         if encoder=='pnet':
-            self.obj_pcd_encoder = PointNetEncoder(global_feat=args.glob_feat, feature_transform=True, inchan=3, outchan=args.globalD)
-        # # if 'best_model.pth' == os.path.basename(args.obj_enc_pth):
-        #     self.obj_pcd_encoder = pnet2_cls(args.obj_enc_pth)
+            stn_mode='bn' if self.args.obj_enc_pth is not None else 'ln'
+            self.obj_pcd_encoder = PointNetEncoder(bs=args.batch_size, global_feat=args.glob_feat,
+                                                   feature_transform=True, inchan=3, outchan=args.globalD,stn_mode=stn_mode)
+            if self.args.obj_enc_pth is not None:
+                checkpoints = torch.load(self.args.obj_enc_pth)
+                for key in list(checkpoints.keys()):
+                    new_key = key.replace('pcd_encoder.', '')
+                    checkpoints[new_key] = checkpoints[key]
+                    checkpoints.pop(key)
+                self.obj_pcd_encoder.load_state_dict(checkpoints)
+            #     a=1
+
         else:
             # self.obj_pcd_encoder = AeConv1d(in_chan=3,n_neuron=256, is_dec=False)
             self.obj_pcd_encoder = AePcd(args, globalD=args.pcd_globalD, global_feat=args.glob_feat, is_dec=False)
-            # if args.obj_enc_pth:
-            #     self.obj_pcd_encoder.load_state_dict(torch.load(args.obj_enc_pth))
-        #
-        # if args.obj_enc_fixed and is_train:
 
 
         self.fc_bn1 = nn.BatchNorm1d(in_chan + in_pcd)
