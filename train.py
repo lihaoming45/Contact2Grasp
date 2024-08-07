@@ -15,7 +15,9 @@ if __name__ == '__main__':
     import warnings
 
     warnings.filterwarnings("ignore", category=UserWarning)
-    torch.multiprocessing.set_start_method('spawn')
+    # torch.multiprocessing.set_start_method('spawn')
+    torch.backends.cudnn.enabled = True
+    torch.backends.cudnn.benchmark = True
     args = arguments.train_cvae2_parse_args()
 
     if'GrabNet' in args.desc:
@@ -59,6 +61,7 @@ if __name__ == '__main__':
 
 
     if args.use_model == 'Param2Mesh':
+        args.freeze_objenc=False
         args.obj_enc_pth = "/remote-home/share/lqt/grasp_contactmap14/grasp_envs/DAPG/model/checkpoint/epo_180_REC_SPnetDenseEncoder_shapenet55_normrot512.pt"
         args.vpe_path = '/home/haoming/GrabNet/grabnet/configs/verts_per_edge.npy'
         args.c_weights_path = '/home/haoming/GrabNet/grabnet/configs/rhand_weight.npy'
