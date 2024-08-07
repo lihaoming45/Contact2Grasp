@@ -83,7 +83,6 @@ class Train_Param2Mesh(Trainer_base):
 
     def cal_loss(self, out, data, dis_out=None):
         dtype = data['trans_rhand'].dtype
-
         q_z = torch.distributions.normal.Normal(out['mean'], out['std'])
         p_z = torch.distributions.normal.Normal(
             loc=torch.tensor(np.zeros([self.args.batch_size, self.args.latentD]), requires_grad=False).to(
@@ -110,9 +109,9 @@ class Train_Param2Mesh(Trainer_base):
         w[~w_dist] = .1  # less weight for far away vertices
         w[w_dist_neg] = 1.5  # more weight for penetration
 
-        loss_dist_h = 10 * (1. - self.cfg.kl_coef) * torch.mean(   #35
+        loss_dist_h = 20 * (1. - self.cfg.kl_coef) * torch.mean(   #35
             torch.einsum('ij,j->ij', torch.abs(h2o.abs() - h2o_gt.abs()), self.v_weights2))
-        loss_dist_o = 15 * (1. - self.cfg.kl_coef) * torch.mean( #30
+        loss_dist_o = 25 * (1. - self.cfg.kl_coef) * torch.mean( #30
             torch.einsum('ij,ij->ij', torch.abs(o2h_signed - o2h_signed_gt), w))
         ########## verts loss
         loss_mesh_rec_w = 30 * (1. - self.cfg.kl_coef) * torch.mean(
@@ -125,25 +124,26 @@ class Train_Param2Mesh(Trainer_base):
         ########## pose loss
         pose_rm_gt = torch.cat([data['global_orient_rhand_rotmat'],data['pose_rhand_rotmat']],dim=1) #(B,16,3,3)
         pose_rm_out = out['fullpose']
-        loss_pose = geodesic_loss(pose_rm_gt, pose_rm_out)*0.1
+        # loss_pose = geodesic_loss(pose_rm_gt, pose_rm_out)*0.1
 
         ######### transl loss
         transl_gt = data['trans_rhand'] #(B,3)
         transl_out = out['transl'] #(B,3)
         loss_transl =self.LossL2(transl_out,transl_gt)*0.1
 
-        loss_dict = {'kl': kl_loss,
+        loss_dict = {
+                     # 'kl': kl_loss,
                      'edge': loss_edge,
                      'm_rec': loss_mesh_rec_w,
                      'dist_h': loss_dist_h,
                      'dist_o': loss_dist_o,
-                     'pose':loss_pose,
+                     # 'pose':loss_pose,
                      'trans': loss_transl,
                      }
 
         # loss_total = torch.stack(list(loss_dict.values())).sum()
         # loss_total = kl_loss+loss_mesh_rec_w+loss_pose+loss_transl
-        loss_total = kl_loss+loss_edge+loss_mesh_rec_w + loss_dist_h+loss_dist_o+loss_pose+loss_transl
+        loss_total = loss_edge+loss_mesh_rec_w + loss_dist_h+loss_dist_o+loss_transl #+loss_pose #+kl_loss
         loss_dict['loss_total'] = loss_total
 
         return loss_total, loss_dict
