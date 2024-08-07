@@ -28,8 +28,8 @@ def args_print(args):
 
 def train_cvae_parse_args():
     parser = argparse.ArgumentParser(description='cvae networks training')
-    parser.add_argument('--lr', default=2e-4, type=float)
-    parser.add_argument('--batch_size', default=64, type=int)
+    parser.add_argument('--lr', default=1e-4, type=float)
+    parser.add_argument('--batch_size', default=128, type=int)
     parser.add_argument('--optim', default='adam', type=str)
     parser.add_argument('--scheduler', default=False, type=bool)
     parser.add_argument('--gpu_num', default=6, type=int)
@@ -41,7 +41,7 @@ def train_cvae_parse_args():
     parser.add_argument('--epochs', default=800, type=int)
 
     parser.add_argument('--checkpoints', default=None, type=str)
-    parser.add_argument('--desc', default='Param2mESH_fixed_split_ld64_ContactPose_augrot', type=str)
+    parser.add_argument('--desc', default='Param2mesh_fixed_split_ld64_ContactPose_augrot', type=str)
 
     #########################################################
     # Transformer parameters
