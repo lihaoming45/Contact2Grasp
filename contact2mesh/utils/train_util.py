@@ -83,11 +83,15 @@ class Trainer_base:
             self.model_load()
             print('load the model path: '+self.args.checkpoints+"\n")
 
-        self.optimizer = optim.Adam(filter(lambda p: p.requires_grad, self.model.parameters()), lr=args.lr)
+        self.optimizer = optim.Adam(filter(lambda p: p.requires_grad, self.model.parameters()), lr=args.lr, weight_decay=0.0005)
+        # self.optimizer = optim.AdamW(filter(lambda p: p.requires_grad, self.model.parameters()), lr=args.lr)
+        # self.optimizer = optim.SGD(filter(lambda p: p.requires_grad, self.model.parameters()), lr=args.lr)
+
+
+        # self.optimizer = optim.Adam(self.model.parameters(), lr=args.lr)
 
         if bool(args.scheduler):
             self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, 'min', patience=5)
-
 
 
         log_dir = args.save_path if 'save_path' in args else './contact2mesh'
@@ -167,21 +171,30 @@ class Trainer_base:
         return util.dict_to_device(data, self.device)
 
     def train_epoch(self, epoch):
-        self.model.train()
         # self.meter_reset()
         cur_loss_dict = {}
         train_iterator = tqdm(self.train_loader, total=self.train_loader.__len__(), ncols=180)
         idx = 0
         for data in train_iterator:
             data = self.to_device(data)
+            self.optimizer.zero_grad()
 
             out = self.model_forward(data)
 
             total_loss, loss_dict = self.cal_loss(out, data)
-
-            self.optimizer.zero_grad()
+            # if self.model.obj_pcd_encoder.stn.conv1.weight.grad is not None:
+            #     if torch.isnan(self.model.obj_pcd_encoder.stn.conv1.weight.grad.sum()):
+            #         a=1
             total_loss.backward()
+            # torch.nn.utils.clip_grad_norm(self.model.parameters(), 1, norm_type=2)
+            # assert torch.isnan(self.model.mu).sum() == 0, print(self.model.mu)
+
+            # if self.model.obj_pcd_encoder.stn.conv1.weight.grad is not None:
+            #     if torch.isnan(self.model.obj_pcd_encoder.stn.conv1.weight.grad.sum()):
+            #         a=1
             self.optimizer.step()
+            # self.optimizer.zero_grad()
+
 
             cur_loss_dict = {k: cur_loss_dict.get(k, 0.0) + v.item() for k, v in loss_dict.items()}
             cur_train_loss_dict = {k: v / (idx + 1) for k, v in cur_loss_dict.items()}
@@ -193,7 +206,7 @@ class Trainer_base:
 
         return cur_train_loss_dict
 
-
+    @torch.no_grad()
     def eval_epoch(self, epoch):
         self.model.eval()
         cur_loss_dict, eval_metric_dict = {}, {}
@@ -225,28 +238,30 @@ class Trainer_base:
         return eval_dict
 
     def train(self):
+        self.model.train()
+
         for epo in range(self.cur_epo, self.args.epochs + 1):
             self.cur_epo = epo
             train_loss_dict = self.train_epoch(epo)
 
-            if bool(self.args.scheduler):
-                self.scheduler.step(train_loss_dict['loss_total'])
-
-            self.writer.add_scalars('train_loss/total_scalars', {'total_loss': train_loss_dict['loss_total']}, epo)
-            del train_loss_dict['loss_total']
-            self.writer.add_scalars('train_loss/dict_scalars',train_loss_dict, epo)
-
-            if self.do_eval and epo%self.eval_gap==0:
-                eval_loss_dict = self.eval_epoch(epo)
-                self.writer.add_scalars('eval_loss/total_scalars', {'total_loss': eval_loss_dict['loss_total']}, epo)
-
-                if eval_loss_dict['loss_total']< self.best_eval_loss:
-                    torch.save(self.model.state_dict(),
-                               osp.join(self.snap_path,'epo_{}_{}.pt').format(epo, self.args.desc))
-                    self.best_eval_loss = eval_loss_dict['loss_total']
-
-                del eval_loss_dict['loss_total']
-                self.writer.add_scalars('eval_loss/dict_scalars', eval_loss_dict, epo)
+            # if bool(self.args.scheduler):
+            #     self.scheduler.step(train_loss_dict['loss_total'])
+            #
+            # self.writer.add_scalars('train_loss/total_scalars', {'total_loss': train_loss_dict['loss_total']}, epo)
+            # del train_loss_dict['loss_total']
+            # self.writer.add_scalars('train_loss/dict_scalars',train_loss_dict, epo)
+            #
+            # if self.do_eval and epo%self.eval_gap==0:
+            #     eval_loss_dict = self.eval_epoch(epo)
+            #     self.writer.add_scalars('eval_loss/total_scalars', {'total_loss': eval_loss_dict['loss_total']}, epo)
+            #
+            #     if eval_loss_dict['loss_total']< self.best_eval_loss:
+            #         torch.save(self.model.state_dict(),
+            #                    osp.join(self.snap_path,'epo_{}_{}.pt').format(epo, self.args.desc))
+            #         self.best_eval_loss = eval_loss_dict['loss_total']
+            #
+            #     del eval_loss_dict['loss_total']
+            #     self.writer.add_scalars('eval_loss/dict_scalars', eval_loss_dict, epo)
 
 
     @staticmethod
