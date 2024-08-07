@@ -10,7 +10,6 @@ import contact2mesh.utils.util as util
 # from pytorch3d.loss import chamfer_distance
 from contact2mesh.utils.contact_metrics import distDICE
 import mano
-
 class Train_Param2Mesh(Trainer_base):
     def  __init__(self,args, train_loader, test_loader=None):
         model = model_select(args.use_model, args)
@@ -20,12 +19,23 @@ class Train_Param2Mesh(Trainer_base):
         self.save_step = 10
         self.save_epo = 50
 
+
         flat_hand_mean=False if 'ContactPose' in args.desc else True
-        self.rhm_model = ManoLayer(mano_root='/remote-home/lihaoming/haoming/Contact2Mesh/contactopt/manopth/mano/models', use_pca=False,
+        self.rhm_model = ManoLayer(mano_root='/remote-home/lihaoming/haoming/GrabNet/contactopt/manopth/mano/models', use_pca=False,
                                    ncomps=45, side='right', flat_hand_mean=flat_hand_mean).to(self.device)
 
         rh_f = self.rhm_model.th_faces.int().view(1, -1, 3)
         self.rh_f = rh_f.repeat(args.batch_size, 1, 1).to(self.device).to(torch.long)
+
+        # self.rhm_model = mano.load(model_path='/home/haoming/GrabNet/contactopt/manopth/mano/models/MANO_RIGHT.pkl',
+        #                    model_type='mano',
+        #                    num_pca_comps=45,
+        #                    batch_size=self.cfg.batch_size,
+        #                    flat_hand_mean=True).to(self.device)
+        #
+        # rh_f = torch.from_numpy(self.rhm_model.faces.astype(np.int32)).view(1, -1, 3)
+        # self.rh_f = rh_f.repeat(self.cfg.batch_size,1,1).to(self.device).to(torch.long)
+
 
         if isinstance(args.c_weights_path, str):
             v_weights = torch.from_numpy(np.load(args.c_weights_path)).to(torch.float32).to(self.device)
@@ -100,12 +110,12 @@ class Train_Param2Mesh(Trainer_base):
         w[~w_dist] = .1  # less weight for far away vertices
         w[w_dist_neg] = 1.5  # more weight for penetration
 
-        loss_dist_h = 35 * (1. - self.cfg.kl_coef) * torch.mean(
+        loss_dist_h = 10 * (1. - self.cfg.kl_coef) * torch.mean(   #35
             torch.einsum('ij,j->ij', torch.abs(h2o.abs() - h2o_gt.abs()), self.v_weights2))
-        loss_dist_o = 30 * (1. - self.cfg.kl_coef) * torch.mean(
+        loss_dist_o = 15 * (1. - self.cfg.kl_coef) * torch.mean( #30
             torch.einsum('ij,ij->ij', torch.abs(o2h_signed - o2h_signed_gt), w))
         ########## verts loss
-        loss_mesh_rec_w = 35 * (1. - self.cfg.kl_coef) * torch.mean(
+        loss_mesh_rec_w = 30 * (1. - self.cfg.kl_coef) * torch.mean(
             torch.einsum('ijk,j->ijk', torch.abs((data['verts_rhand'] - verts_rhand)), self.v_weights))
         ########## edge loss
         loss_edge = 30 * (1. - self.cfg.kl_coef) * self.LossL1(self.edges_for(verts_rhand, self.vpe),
@@ -132,6 +142,7 @@ class Train_Param2Mesh(Trainer_base):
                      }
 
         # loss_total = torch.stack(list(loss_dict.values())).sum()
+        # loss_total = kl_loss+loss_mesh_rec_w+loss_pose+loss_transl
         loss_total = kl_loss+loss_edge+loss_mesh_rec_w + loss_dist_h+loss_dist_o+loss_pose+loss_transl
         loss_dict['loss_total'] = loss_total
 
