@@ -17,7 +17,7 @@ class STN3d(nn.Module):
         self.fc2 = nn.Linear(512, 256)
         self.fc3 = nn.Linear(256, 9)
         self.relu = nn.ReLU()
-
+        self.mode=mode
         if mode=='bn':
             self.bn1 = nn.BatchNorm1d(64)
             self.bn2 = nn.BatchNorm1d(128)
@@ -32,38 +32,44 @@ class STN3d(nn.Module):
             self.ln4 = nn.LayerNorm(512)
             self.ln5 = nn.LayerNorm(256)
 
-        self.iden = Variable(torch.from_numpy(np.array([1, 0, 0, 0, 1, 0, 0, 0, 1]).astype(np.float32))).view(1, 9).repeat(
-            bs, 1).cuda()
+        self.iden = Variable(torch.from_numpy(np.array([1, 0, 0, 0, 1, 0, 0, 0, 1]).astype(np.float32))).view(1, 9).repeat(bs, 1).cuda()
+        # self.iden = Variable(torch.from_numpy(np.array([1, 0, 0, 0, 1, 0, 0, 0, 1]).astype(np.float32))).view(1, 9).cuda()
 
     def forward(self, x):
         batchsize = x.size()[0]
-        # x = F.relu(self.bn1(self.conv1(x)))
-        # x = F.relu(self.bn2(self.conv2(x)))
-        # x = F.relu(self.bn3(self.conv3(x)))
-        # x = torch.max(x, 2, keepdim=True)[0]
-        # x = x.view(-1, 1024)
-        #
-        # x = F.relu(self.bn4(self.fc1(x)))
-        # x = F.relu(self.bn5(self.fc2(x)))
-        # x = self.fc3(x)
+        if self.mode=='bn':
+            x = F.relu(self.bn1(self.conv1(x)))
+            x = F.relu(self.bn2(self.conv2(x)))
+            x = F.relu(self.bn3(self.conv3(x)))
+            x = torch.max(x, 2, keepdim=True)[0]
+            x = x.view(-1, 1024)
 
+            x = F.relu(self.bn4(self.fc1(x)))
+            x = F.relu(self.bn5(self.fc2(x)))
 
-        x = F.relu(self.ln1(self.conv1(x)))
-        x = F.relu(self.ln2(self.conv2(x)))
-        x = F.relu(self.ln3(self.conv3(x)))
-        x = torch.max(x, 2, keepdim=True)[0]
-        x = x.view(-1, 1024)
+        else:
+            x = F.relu(self.ln1(self.conv1(x)))
+            x = F.relu(self.ln2(self.conv2(x)))
+            x = F.relu(self.ln3(self.conv3(x)))
+            x = torch.max(x, 2, keepdim=True)[0]
+            x = x.view(-1, 1024)
+            x = F.relu(self.ln4(self.fc1(x)))
+            x = F.relu(self.ln5(self.fc2(x)))
 
-        x = F.relu(self.ln4(self.fc1(x)))
-        x = F.relu(self.ln5(self.fc2(x)))
         x = self.fc3(x)
 
+        if torch.isnan(x.sum()):
+            a = 1
+        #
         # iden = Variable(torch.from_numpy(np.array([1, 0, 0, 0, 1, 0, 0, 0, 1]).astype(np.float32))).view(1, 9).repeat(
         #     batchsize, 1)
         # if x.is_cuda:
-        #     iden = self.iden.cuda()
+        #     iden = iden.cuda()
+        # x = x + iden
         x = x + self.iden
+
         x = x.view(-1, 3, 3)
+
         return x
 
 
@@ -77,6 +83,7 @@ class STNkd(nn.Module):
         self.fc2 = nn.Linear(512, 256)
         self.fc3 = nn.Linear(256, k * k)
         self.relu = nn.ReLU()
+        self.mode = mode
         if mode=='bn':
             self.bn1 = nn.BatchNorm1d(64)
             self.bn2 = nn.BatchNorm1d(128)
@@ -91,37 +98,38 @@ class STNkd(nn.Module):
             self.ln5 = nn.LayerNorm(256)
 
         self.k = k
-        self.iden = Variable(torch.from_numpy(np.eye(self.k).flatten().astype(np.float32))).view(1, self.k * self.k).repeat(
-            bs, 1).cuda()
+        # self.iden = Variable(torch.from_numpy(np.eye(self.k).flatten().astype(np.float32))).view(1, self.k * self.k).cuda()
+        self.iden = Variable(torch.from_numpy(np.eye(self.k).flatten().astype(np.float32))).view(1, self.k * self.k).repeat(bs, 1).cuda()
 
     def forward(self, x):
         batchsize = x.size()[0]
-        # x = F.relu(self.bn1(self.conv1(x)))
-        # x = F.relu(self.bn2(self.conv2(x)))
-        # x = F.relu(self.bn3(self.conv3(x)))
-        # x = torch.max(x, 2, keepdim=True)[0]
-        # x = x.view(-1, 1024)
-        #
-        # x = F.relu(self.bn4(self.fc1(x)))
-        # x = F.relu(self.bn5(self.fc2(x)))
+        if self.mode=='bn':
+            x = F.relu(self.bn1(self.conv1(x)))
+            x = F.relu(self.bn2(self.conv2(x)))
+            x = F.relu(self.bn3(self.conv3(x)))
+            x = torch.max(x, 2, keepdim=True)[0]
+            x = x.view(-1, 1024)
 
-        x = F.relu(self.ln1(self.conv1(x)))
-        x = F.relu(self.ln2(self.conv2(x)))
-        x = F.relu(self.ln3(self.conv3(x)))
-        x = torch.max(x, 2, keepdim=True)[0]
-        x = x.view(-1, 1024)
+            x = F.relu(self.bn4(self.fc1(x)))
+            x = F.relu(self.bn5(self.fc2(x)))
+        else:
+            x = F.relu(self.ln1(self.conv1(x)))
+            x = F.relu(self.ln2(self.conv2(x)))
+            x = F.relu(self.ln3(self.conv3(x)))
+            x = torch.max(x, 2, keepdim=True)[0]
+            x = x.view(-1, 1024)
 
-        x = F.relu(self.ln4(self.fc1(x)))
-        x = F.relu(self.ln5(self.fc2(x)))
+            x = F.relu(self.ln4(self.fc1(x)))
+            x = F.relu(self.ln5(self.fc2(x)))
 
         x = self.fc3(x)
-        # iden = Variable(torch.from_numpy(np.eye(self.k).flatten().astype(np.float32))).view(1, self.k * self.k).repeat(
-        #     batchsize, 1)
 
         # iden = Variable(torch.from_numpy(np.eye(self.k).flatten().astype(np.float32))).view(1, self.k * self.k).repeat(
         #     batchsize, 1)
         # if x.is_cuda:
-        #     iden = self.iden.cuda()
+        #     iden = iden.cuda()
+        # x = x + iden
+
         x = x + self.iden
         x = x.view(-1, self.k, self.k)
         return x
@@ -129,10 +137,10 @@ class STNkd(nn.Module):
 
 class PointNetEncoder(nn.Module):
     def  __init__(self,bs, global_feat=True, feature_transform=False, inchan=3, outchan=1024, norms='bn', only_point_feat=False,
-                  localD=64):
+                  localD=64, stn_mode='ln'):
         super(PointNetEncoder, self).__init__()
         self.localD=localD
-        self.stn = STN3d(channel=inchan,bs=bs,mode='ln')
+        self.stn = STN3d(channel=inchan,bs=bs,mode=stn_mode)
         self.conv1 = torch.nn.Conv1d(inchan, 64, 1)
         self.conv2 = torch.nn.Conv1d(64, 128, 1)
         self.conv3 = torch.nn.Conv1d(128, 128, 1)
@@ -159,11 +167,12 @@ class PointNetEncoder(nn.Module):
         self.feature_transform = feature_transform
         self.outchan = outchan
         if self.feature_transform:
-            self.fstn = STNkd(k=64,bs=bs, mode='ln')
+            self.fstn = STNkd(k=64,bs=bs, mode=stn_mode)
 
     def forward(self, x):
         B, D, N = x.size() #D=3+c, N=2048
         trans = self.stn(x)
+
         x = x.transpose(2, 1)
         if D > 3:
             feature = x[:, :, 3:]
