@@ -59,6 +59,7 @@ if __name__ == '__main__':
 
 
     if args.use_model == 'Param2Mesh':
+        args.obj_enc_pth = "/remote-home/share/lqt/grasp_contactmap14/grasp_envs/DAPG/model/checkpoint/epo_180_REC_SPnetDenseEncoder_shapenet55_normrot512.pt"
         args.vpe_path = '/home/haoming/GrabNet/grabnet/configs/verts_per_edge.npy'
         args.c_weights_path = '/home/haoming/GrabNet/grabnet/configs/rhand_weight.npy'
         # args.obj_enc_fixed = True
